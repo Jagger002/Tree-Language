@@ -5,10 +5,14 @@ snd = t t id
 true = fst
 false = snd
 
-p = true
-q = false
-pAndQ = p q false
-p
-q
-pAndQ
+b = t t id
+c = t t (t t (t t false))
+and = t (t t b) c 
 
+true
+false
+
+and true true
+and true false
+and false true
+and false false
