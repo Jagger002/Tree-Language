@@ -1,6 +1,8 @@
 module Main where
 
+import Control.Exception (SomeException, try)
 import Control.Monad.IO.Class (liftIO)
+import Data.Char (isSpace)
 import Data.List (isPrefixOf, lookup, partition)
 import Data.Maybe (fromMaybe)
 import System.Console.Haskeline
@@ -78,6 +80,11 @@ main = do
   let results = map (parseExpression vars) expressions
   mapM_ print results
 
+trim :: String -> String
+trim = f . f
+ where
+  f = reverse . dropWhile isSpace
+
 repl :: IO ()
 repl = runInputT defaultSettings (loop [])
  where
@@ -87,13 +94,29 @@ repl = runInputT defaultSettings (loop [])
     case minput of
       Nothing -> return ()
       Just ":q" -> return ()
+      Just ":?" -> do
+        outputStrLn "Commands:"
+        outputStrLn ":q - quit"
+        outputStrLn ":? - help"
+        outputStrLn ":b - list variables"
+        outputStrLn ":l <filename> - load file"
+        loop vars
+      Just (':' : 'b' : rest) -> do
+        let rows :: [String] = map (\(name, tree) -> name ++ " = " ++ show tree) vars
+        mapM_ outputStrLn rows
+        loop vars
       Just (':' : 'l' : rest) -> do
-        let filename = dropWhile (== ' ') rest
-        content <- liftIO $ readFile filename
-        let allLines = filter (/= []) $ map parseLiterals $ lines content
-        let statements = filter isStatement allLines
-        let newVars = parseStatements vars statements
-        loop newVars
+        let filename = trim rest
+        result <- liftIO $ try $ readFile filename
+        case result of
+          Left (e :: SomeException) -> do
+            outputStrLn $ "Error reading file: " ++ show e
+            loop vars
+          Right content -> do
+            let allLines = filter (/= []) $ map parseLiterals $ lines content
+            let statements = filter isStatement allLines
+            let newVars = parseStatements vars statements
+            loop newVars
       Just input -> do
         let literals = parseLiterals input
         case literals of
@@ -103,5 +126,9 @@ repl = runInputT defaultSettings (loop [])
             loop ((name, tree) : vars)
           _ -> do
             let tree = parseExpression vars literals
-            outputStrLn (show tree)
-            loop vars
+            result <- liftIO $ try $ print tree
+            case result of
+              Left (e :: SomeException) -> do
+                outputStrLn $ "Error evaluating: " ++ show e
+                loop vars
+              Right _ -> loop vars
