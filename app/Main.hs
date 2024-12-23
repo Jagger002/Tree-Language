@@ -1,10 +1,10 @@
 module Main where
 
-import Data.List (isPrefixOf, lookup, partition)
-import System.Console.Haskeline
-import Data.Maybe (fromMaybe)
-import System.IO
 import Control.Monad.IO.Class (liftIO)
+import Data.List (isPrefixOf, lookup, partition)
+import Data.Maybe (fromMaybe)
+import System.Console.Haskeline
+import System.IO
 
 data Tree = Leaf | Stem Tree | Branch Tree Tree
   deriving (Show)
@@ -53,6 +53,7 @@ data Literal = Var String | T | Equals | StartParen | EndParen
   deriving (Show, Eq)
 
 parseLiterals :: String -> [Literal]
+parseLiterals ('#' : xs) = []
 parseLiterals ('(' : xs) = StartParen : parseLiterals xs
 parseLiterals (')' : xs) = EndParen : parseLiterals xs
 parseLiterals ('=' : xs) = Equals : parseLiterals xs
@@ -80,56 +81,27 @@ main = do
 repl :: IO ()
 repl = runInputT defaultSettings (loop [])
  where
-    loop :: [(String, Tree)] -> InputT IO ()
-    loop vars = do
-        minput <- getInputLine "% "
-        case minput of
-            Nothing -> return ()
-            Just ":q" -> return ()
-            Just (':':'l':rest) -> do
-                let filename = dropWhile (== ' ') rest
-                content <- liftIO $ readFile filename
-                let allLines = filter (/= []) $ map parseLiterals $ lines content
-                let statements = filter isStatement allLines
-                let newVars = parseStatements vars statements
-                loop newVars
-            Just input -> do
-                let literals = parseLiterals input
-                if isStatement literals
-                then do
-                    let (name, tree) = parseStatement vars literals
-                    loop ((name, tree) : vars)
-                else do
-                    let tree = parseExpression vars literals
-                    outputStrLn (show tree)
-                    loop vars
-
-{-                    
-    replHelper :: 
-    run_repl vars = do
-        putStr "tree> "
-        hFlush stdout
-        line <- getLine
-
-        if ":l " `isPrefixOf` line
-        then do
-            let filename = dropWhile (== ' ') $ drop 3 line
-            content <- readFile filename
-            let allLines = filter (/= []) $ map parseLiterals $ lines content
-            let statements = filter isStatement allLines
-            let newVars = parseStatements vars statements
-            run_repl newVars
-        else do
-            let literals = parseLiterals line
-            if ":q" `isPrefixOf` line
-            then return ()
-            else do
-                if isStatement literals
-                then do
-                    let (name, tree) = parseStatement vars literals
-                    run_repl ((name, tree) : vars)
-                else do
-                    let tree = parseExpression vars literals
-                    print tree
-                    run_repl vars
-                    -}
+  loop :: [(String, Tree)] -> InputT IO ()
+  loop vars = do
+    minput <- getInputLine "% "
+    case minput of
+      Nothing -> return ()
+      Just ":q" -> return ()
+      Just (':' : 'l' : rest) -> do
+        let filename = dropWhile (== ' ') rest
+        content <- liftIO $ readFile filename
+        let allLines = filter (/= []) $ map parseLiterals $ lines content
+        let statements = filter isStatement allLines
+        let newVars = parseStatements vars statements
+        loop newVars
+      Just input -> do
+        let literals = parseLiterals input
+        case literals of
+          [] -> loop vars
+          _ | isStatement literals -> do
+            let (name, tree) = parseStatement vars literals
+            loop ((name, tree) : vars)
+          _ -> do
+            let tree = parseExpression vars literals
+            outputStrLn (show tree)
+            loop vars

@@ -1,24 +1,23 @@
 id = t (t (t t)) t
 K = t t
-S = (t (t (t t t)) t)
+S = t (t (t t t)) t
 fst = t t
 snd = t t id
 
 true = fst
 false = snd
 
+# We define `and` by pattern matching on the first argument
 b = t t id
 c = t t (t t (t t false))
 and = t (t t b) c 
 
+# This is what the true and false values look like
 true
 false
 
+# And this is the truth table for `and`
 and true true
 and true false
 and false true
 and false false
-
-0 = t
-add1 = t 0
-2 = S 0 
