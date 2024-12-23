@@ -18,3 +18,7 @@ and true true
 and true false
 and false true
 and false false
+
+0 = t
+add1 = t 0
+2 = S 0 
