@@ -1,4 +1,5 @@
-import Data.List (lookup, partition)
+import Data.List (isPrefixOf, lookup, partition)
+import Data.List.Split (startsWith)
 import Data.Maybe (fromMaybe)
 import System.IO
 
@@ -41,6 +42,10 @@ parseStatement vars (Var name : Equals : expr) = (name, parseExpression vars exp
 parseStatements :: [(String, Tree)] -> [[Literal]] -> [(String, Tree)]
 parseStatements = foldl (\acc line -> parseStatement acc line : acc)
 
+isStatement :: [Literal] -> Bool
+isStatement (Var _ : Equals : _) = True
+isStatement _ = False
+
 data Literal = Var String | T | Equals | StartParen | EndParen
   deriving (Show, Eq)
 
@@ -63,8 +68,38 @@ main = do
   content <- readFile filename
 
   let allLines = filter (/= []) $ map parseLiterals $ lines content
-  let (statements, expressions) = partition (elem Equals) allLines
+  let (statements, expressions) = partition isStatement allLines
 
   let vars = parseStatements [] statements
   let results = map (parseExpression vars) expressions
   mapM_ print results
+
+repl :: IO ()
+repl = run_repl []
+ where
+  run_repl vars = do
+    putStr "tree> "
+    hFlush stdout
+    line <- getLine
+
+    if ":l " `isPrefixOf` line
+      then do
+        let filename = dropWhile (== ' ') $ drop 3 line
+        content <- readFile filename
+        let allLines = filter (/= []) $ map parseLiterals $ lines content
+        let statements = filter isStatement allLines
+        let newVars = parseStatements vars statements
+        run_repl newVars
+      else do
+        let literals = parseLiterals line
+        if null literals
+          then return ()
+          else do
+            if isStatement literals
+              then do
+                let (name, tree) = parseStatement vars literals
+                run_repl ((name, tree) : vars)
+              else do
+                let tree = parseExpression vars literals
+                print tree
+                run_repl vars
