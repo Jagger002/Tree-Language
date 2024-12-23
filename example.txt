@@ -1,4 +1,5 @@
 id = t (t (t t)) t
+K = t t
 fst = t t
 snd = t t id
 
@@ -8,7 +9,14 @@ false = snd
 p = true
 q = false
 pAndQ = p q false
-p
-q
-pAndQ
-
+S = (t (t (t t t)) t)
+0 = t
+1 = t t
+add = t 
+2 = add 1
+3 = add 2
+2 
+3
+S 0
+S 2
+S 3
