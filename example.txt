@@ -1,23 +1,74 @@
-id = t (t (t t)) t
+I = t (t (t t)) t
 K = t t
-S = t (t (t t t)) t
+S = (t (t (t t t)) t)
 fst = t t
-snd = t t id
+snd = t t I
 
 true = fst
 false = snd
 
-# We define `and` by pattern matching on the first argument
-b = t t id
+b = t t I
 c = t t (t t (t t false))
 and = t (t t b) c 
 
-# This is what the true and false values look like
 true
 false
 
-# And this is the truth table for `and`
 and true true
 and true false
 and false true
 and false false
+
+
+
+rev = (S (K (S I)) (S (K K) I))
+g = I
+inuti = t (t g)
+yttre = t (t (t t inuti)) (t (t (t t (t t))) (t (t (t t)) t))
+yttre2 = t (t (t t inuti)) I
+hoger = (t (t (t t (t t))) (t (t (t t)) t))
+konstant_inne = S  
+konstant = t (t (t t konstant_inne)) (t (t (t t (t t))) (t (t (t t)) t))
+
+g2 = I
+f2 = t (t (t t (t (t g2)))) I
+g1 = fst f2
+g3 = I
+f1 = t (t (t t (t (t g1)))) I 
+# f1 x y z = z (x y z)
+
+
+B = S (K S) K 
+succ = S B 
+add = B S (B B)
+mul = B
+pred = t (t t I) t
+
+0 = snd
+1 = succ 0
+2 = succ 1
+3 = succ 2
+4 = mul 2 2
+5 = succ 4
+6 = mul 3 2
+7 = succ 6
+8 = mul 2 4
+9 = mul 3 3
+10 = add 8 2
+100 = mul 10 10
+1000 = mul 100 10
+# a b is power
+# 3 * (333*167)
+333 = (mul 3 100) succ (mul 3 10) succ 3
+167 = 100 succ (mul 10 6) succ 7
+3_sum = mul 333 (mul 3 167)
+199 = 100 succ (mul 10 9) succ 9
+5_sum = mul 5 (mul 100 199)
+67 = (mul 10 6) succ 7
+33 = mul 3 (succ 10)
+15 = 5 succ 10
+15_sum = mul 15 (mul 33 67)
+delsvar = add 3_sum 5_sum t t
+svar = 15_sum pred delsvar
+
+

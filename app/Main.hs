@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import Control.Exception (SomeException, try)
@@ -68,6 +69,11 @@ parseLiterals s =
    in
     val : parseLiterals rest
 
+calculateSize :: Tree -> Integer
+calculateSize Leaf = 0
+calculateSize (Stem tree) = 1 + calculateSize tree
+calculateSize (Branch l r) = 1 + (calculateSize l) + (calculateSize r)
+
 main :: IO ()
 main = do
   let filename = "example.txt"
@@ -100,6 +106,7 @@ repl = runInputT defaultSettings (loop [])
         outputStrLn ":? - help"
         outputStrLn ":b - list variables"
         outputStrLn ":l <filename> - load file"
+        outputStrLn ":s <expression> - size "
         loop vars
       Just (':' : 'b' : rest) -> do
         let rows :: [String] = map (\(name, tree) -> name ++ " = " ++ show tree) vars
@@ -117,6 +124,11 @@ repl = runInputT defaultSettings (loop [])
             let statements = filter isStatement allLines
             let newVars = parseStatements vars statements
             loop newVars
+      Just (':' : 's' : rest) -> do
+        let literals = parseLiterals rest
+        let tree = parseExpression vars literals
+        outputStrLn $ "Size: " ++ show (calculateSize tree)
+        loop vars
       Just input -> do
         let literals = parseLiterals input
         case literals of
