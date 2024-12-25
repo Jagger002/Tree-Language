@@ -1,0 +1,44 @@
+
+# Common function
+id x = x
+fst x y = x
+snd x y = y
+triage leaf stem branch = t (t leaf stem) branch
+
+# SKI combinators
+K = t t
+S = t (t (t t t)) t
+I = t (t (t t)) t
+U = t (t id) id
+B = S (K S) K
+C = S (B B S) (K K)
+W = S S (K S)
+Y = B U (C B U)
+
+
+# Numbers
+
+succ n = t n
+int zero pred = triage zero pred t
+isZero n zero notzero = int zero (\_ notzero)
+pred = int t id
+
+_add self n = int n (self (succ n))
+add = Y _add
+
+0 = t
+_mul self n = int 0 (\predm add n (self n predm))
+mul = Y _mul
+
+1 = t t
+2 = t (t t)
+3 = succ 2
+4 = add 2 2
+
+b0 n = add n n
+b1 n = succ (add n n)
+
+_apply f x self = int x (\predn f (self predn))
+apply n f x = Y (_apply f x) n
+
+
