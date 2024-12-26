@@ -60,12 +60,23 @@ replaceLambdas (Lambda name (Application f g))
   | isUsed name g = Application (Application _B (replaceLambdas f)) (replaceLambdas (Lambda name g)) -- Case 8
 replaceLambdas tree = tree -- Case 1
 
+-- Splits the string until the next matching closing parenthesis.
+-- example: "t (t t) t) t" -> ("t (t t) t" "t")
+insideParens :: [Literal] -> ([Literal], [Literal])
+insideParens (EndParen : rest) = ([], rest)
+insideParens (StartParen : rest) =
+  let (innerLits, remaining) = insideParens rest
+      (left, right) = insideParens remaining
+   in (StartParen : innerLits ++ EndParen : left, right)
+insideParens (lit : rest) =
+  let (innerLits, remaining) = insideParens rest
+   in (lit : innerLits, remaining)
+
 parseHelper :: Maybe Syntax -> [Literal] -> (Syntax, [Literal])
 parseHelper _ (Equals : _) = error "Unexpected equals sign"
 parseHelper Nothing [] = error "Unexpected end of input"
-parseHelper Nothing (EndParen : _) = error "Unexpected closing parenthesis"
+parseHelper _ (EndParen : _) = error "Unexpected closing parenthesis"
 parseHelper (Just syntax) [] = (syntax, [])
-parseHelper (Just syntax) (EndParen : rest) = (syntax, rest)
 parseHelper ms (Name "t" : rest) = parseHelper (Just $ maybeF ms T) rest
 parseHelper ms (Name name : rest) = parseHelper (Just $ maybeF ms $ Var name) rest
 parseHelper ms (Backslash : Name name : rest)
@@ -74,8 +85,9 @@ parseHelper ms (Backslash : Name name : rest)
       let (innerSyntax, remaining) = parseHelper Nothing rest
        in parseHelper (Just $ Lambda name innerSyntax) remaining
 parseHelper ms (StartParen : rest) =
-  let (innerSyntax, remaining) = parseHelper Nothing rest
-   in parseHelper (Just $ maybeF ms innerSyntax) remaining
+  let (insidePars, rightOfPars) = insideParens rest
+      (innerSyntax, []) = parseHelper Nothing insidePars
+   in parseHelper (Just $ maybeF ms innerSyntax) rightOfPars
 parseHelper ms lits = error $ show lits
 
 parse :: [Literal] -> Syntax
