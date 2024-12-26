@@ -17,84 +17,85 @@ trim = f . f
  where
   f = reverse . dropWhile isSpace
 
+parseLine :: String -> Syntax
+parseLine = parse . parseLiterals
+
+parseLines :: String -> ([Syntax], [Syntax])
+parseLines = partition isStatement . map parse . filter (/= []) . map parseLiterals . lines
+
+parseFile :: String -> IO ([Syntax], [Syntax])
+parseFile filename = do
+  result <- try $ readFile filename
+  case result of
+    Left (e :: SomeException) -> do
+      print $ "Error reading file: " ++ show e
+      return ([], [])
+    Right content -> return $ parseLines content
+
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    [filename] -> do
-      content <- readFile filename
+    [filename] -> runInputT defaultSettings (runFile filename [])
+    [] -> runInputT defaultSettings (loop [])
 
-      let allLines = map parse $ filter (/= []) $ map parseLiterals $ lines content
-      let (statements, expressions) = partition isStatement allLines
+runFile :: String -> [(String, Tree)] -> InputT IO ()
+runFile fileName vars = do
+  (statements, expressions) <- liftIO $ parseFile fileName
+  runLines vars (statements, expressions)
 
-      let vars = evalStatements [] statements
-      let results = map (evalExpression vars) expressions
-      mapM_ print results
-    [] -> repl
+runLines :: [(String, Tree)] -> ([Syntax], [Syntax]) -> InputT IO ()
+runLines vars (statements, expressions) = do
+  let newVars = evalStatements vars statements
+  let results = map (evalExpression newVars) expressions
 
-repl :: IO ()
-repl = runInputT defaultSettings (loop [])
- where
-  loop :: [(String, Tree)] -> InputT IO ()
-  loop vars = do
-    minput <- getInputLine "% "
-    case minput of
-      Nothing -> return ()
-      Just ":q" -> return ()
-      Just ":?" -> do
-        outputStrLn "Commands:"
-        outputStrLn ":q - quit"
-        outputStrLn ":? - help"
-        outputStrLn ":b - list variables"
-        outputStrLn ":l <filename> - load file variables"
-        outputStrLn ":s <expression> - size "
-        outputStrLn ":syn <syntax> - show syntax tree"
-        outputStrLn ":lit <literals> - show literals"
-        loop vars
-      Just (':' : 'b' : rest) -> do
-        let rows :: [String] = map (\(name, tree) -> name ++ " = " ++ show tree) vars
-        mapM_ outputStrLn rows
-        loop vars
-      Just (':' : 'l' : ' ' : rest) -> do
-        let filename = trim rest
-        result <- liftIO $ try $ readFile filename
-        case result of
-          Left (e :: SomeException) -> do
-            outputStrLn $ "Error reading file: " ++ show e
-            loop vars
-          Right content -> do
-            let allLines = map parse $ filter (/= []) $ map parseLiterals $ lines content
-            let statements = filter isStatement allLines
-            let newVars = evalStatements vars statements
-            loop newVars
-      Just (':' : 's' : ' ' : rest) -> do
-        let literals = parseLiterals rest
-        let syntax = parse literals
-        let tree = evalExpression vars syntax
-        outputStrLn $ "Size: " ++ show (calculateSize tree)
-      Just (':' : 's' : 'y' : 'n' : rest) -> do
-        let literals = parseLiterals rest
-        let syntax = parse literals
-        outputStrLn $ show syntax
-        loop vars
-      Just (':' : 'l' : 'i' : 't' : rest) -> do
-        outputStrLn . show $ parseLiterals rest
-        loop vars
-      Just input -> do
-        let literals = parseLiterals input
-        if null literals
-          then loop vars
-          else
-            let syntax = parse literals
-             in if isStatement syntax
-                  then do
-                    let (name, tree) = evalStatement vars syntax
-                    loop ((name, tree) : vars)
-                  else do
-                    let tree = evalExpression vars syntax
-                    result <- liftIO $ try $ print tree
-                    case result of
-                      Left (e :: SomeException) -> do
-                        outputStrLn $ "Error evaluating: " ++ show e
-                        loop vars
-                      Right _ -> loop vars
+  printResult :: Either SomeException () <- liftIO . try $ mapM_ print results
+  case printResult of
+    Left (e :: SomeException) -> do
+      outputStrLn $ "Error evaluating: " ++ show e
+      loop vars
+    Right () -> do
+      loop newVars
+
+loop :: [(String, Tree)] -> InputT IO ()
+loop vars = do
+  minput <- getInputLine "% "
+  case minput of
+    Nothing -> return ()
+    Just ":q" -> return ()
+    Just ":?" -> do
+      outputStrLn "Commands:"
+      outputStrLn ":q - quit"
+      outputStrLn ":? - help"
+      outputStrLn ":b - list variables"
+      outputStrLn ":l <filename> - load file variables"
+      outputStrLn ":r <filename> - run file"
+      outputStrLn ":s <expression> - size "
+      outputStrLn ":syn <syntax> - show syntax tree"
+      outputStrLn ":lit <literals> - show literals"
+      loop vars
+    Just (':' : 'b' : _) -> do
+      let rows :: [String] = map (\(name, tree) -> name ++ " = " ++ show tree) vars
+      mapM_ outputStrLn rows
+      loop vars
+    Just (':' : 'l' : ' ' : rest) -> do
+      let filename = trim rest
+      (statements, _) <- liftIO $ parseFile filename
+      let newVars = evalStatements vars statements
+      loop newVars
+    Just (':' : 'r' : ' ' : rest) -> do
+      let filename = trim rest
+      runFile filename vars
+    Just (':' : 's' : ' ' : rest) -> do
+      let syntax = parseLine rest
+      let tree = evalExpression vars syntax
+      outputStrLn $ "Size: " ++ show (calculateSize tree)
+    Just (':' : 's' : 'y' : 'n' : rest) -> do
+      outputStrLn . show $ parseLine rest
+      loop vars
+    Just (':' : 'l' : 'i' : 't' : rest) -> do
+      outputStrLn . show $ parseLiterals rest
+      loop vars
+    Just input -> do
+      let (statements, expressions) = parseLines input
+      runLines vars (statements, expressions)
