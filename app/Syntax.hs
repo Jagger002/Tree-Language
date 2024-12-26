@@ -44,20 +44,21 @@ _B = Application (Application _S (Application _K _S)) _K
 _C :: Syntax
 _C = Application (Application _S (Application (Application _B _B) _S)) (Application _K _K)
 
+-- Cases from Wikipedia: https://en.m.wikipedia.org/wiki/Combinatory_logic#Combinatory_calculi
 replaceLambdas :: Syntax -> Syntax
 replaceLambdas (Assignment name (var : vars) tree) = replaceLambdas $ Assignment name vars (Lambda var tree)
 replaceLambdas (Assignment name [] tree) = Assignment name [] $ replaceLambdas tree
-replaceLambdas (Application a b) = Application (replaceLambdas a) (replaceLambdas b)
-replaceLambdas (Lambda name tree) | not (isUsed name tree) = Application _K (replaceLambdas tree)
-replaceLambdas (Lambda name T) = T
-replaceLambdas (Lambda name (Var _)) = _I
-replaceLambdas (Lambda name (Application f (Var n))) | name == n && not (isUsed name f) = f
+replaceLambdas (Application a b) = Application (replaceLambdas a) (replaceLambdas b) -- Case 2
+replaceLambdas (Lambda name tree) | not (isUsed name tree) = Application _K (replaceLambdas tree) -- Case 3
+replaceLambdas (Lambda name (Var _)) = _I -- Case 4
+replaceLambdas (Lambda name (Lambda other e)) = replaceLambdas (Lambda name (replaceLambdas (Lambda other e))) -- Case 5
+replaceLambdas (Lambda name (Application f (Var n))) | name == n && not (isUsed name f) = f -- Eta
 replaceLambdas (Lambda name (Application f g))
-  | isUsed name f && isUsed name g = Application (Application _S (replaceLambdas (Lambda name f))) (replaceLambdas (Lambda name g))
-  | isUsed name f = Application (Application _C (replaceLambdas (Lambda name f))) g
-  | isUsed name g = Application (Application _B f) (replaceLambdas (Lambda name g))
-replaceLambdas (Lambda name (Lambda other e)) = replaceLambdas (Lambda name (replaceLambdas (Lambda other e)))
-replaceLambdas tree = tree
+  | isUsed name f && isUsed name g =
+      Application (Application _S (replaceLambdas (Lambda name f))) (replaceLambdas (Lambda name g)) -- Case 6
+  | isUsed name f = Application (Application _C (replaceLambdas (Lambda name f))) (replaceLambdas g) -- Case 7
+  | isUsed name g = Application (Application _B (replaceLambdas f)) (replaceLambdas (Lambda name g)) -- Case 8
+replaceLambdas tree = tree -- Case 1
 
 parseHelper :: Maybe Syntax -> [Literal] -> (Syntax, [Literal])
 parseHelper _ (Equals : _) = error "Unexpected equals sign"
