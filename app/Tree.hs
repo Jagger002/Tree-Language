@@ -16,3 +16,8 @@ calculateSize :: Tree -> Integer
 calculateSize Leaf = 0
 calculateSize (Stem tree) = 1 + calculateSize tree
 calculateSize (Branch l r) = 1 + (calculateSize l) + (calculateSize r)
+
+asNumber :: Tree -> Integer
+asNumber Leaf = 0
+asNumber (Branch Leaf tree) = 1 + 2 * asNumber tree
+asNumber (Branch (Stem Leaf) tree) = 2 * asNumber tree
