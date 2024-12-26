@@ -60,14 +60,14 @@ replaceLambdas (Lambda name (Application f g))
   | isUsed name g = Application (Application _B (replaceLambdas f)) (replaceLambdas (Lambda name g)) -- Case 8
 replaceLambdas tree = tree -- Case 1
 
--- example: "\x x) y" -> ("\x x", " y"")
--- example: "\x (t t) x) y" -> ("\x (t t) x", " y"")
+-- Splits the string until the next matching closing parenthesis.
+-- example: "t (t t) t) t" -> ("t (t t) t" "t")
 insideParens :: [Literal] -> ([Literal], [Literal])
 insideParens (EndParen : rest) = ([], rest)
 insideParens (StartParen : rest) =
   let (innerLits, remaining) = insideParens rest
       (left, right) = insideParens remaining
-   in (StartParen : innerLits ++ left, right)
+   in (StartParen : innerLits ++ EndParen : left, right)
 insideParens (lit : rest) =
   let (innerLits, remaining) = insideParens rest
    in (lit : innerLits, remaining)
