@@ -1,0 +1,80 @@
+triage leaf stem branch = t (t leaf stem) branch
+
+# SKI combinators
+id x = x
+K = t t
+S = t (t (t t t)) t
+I = t (t (t t)) t
+U = t (t id) id
+B = S (K S) K
+C = S (B B S) (K K)
+W = S S (K S)
+Y = B U (C B U)
+
+fst l r = l
+snd l r = r
+
+# Bools
+true = t
+false = t t
+if b tt ff = triage tt (fst ff) t b
+not b = if b false true
+or a b = if a true b
+and a b = if a b false
+and3 a b c = and (and a b) c
+xor2 a b = if a (not b) b
+xor3 a b c = xor2 (xor2 a b) c
+majority a b c = if a (or b c) (and b c)
+
+# Lists
+nil = t
+cons e list = t e list
+
+head list = triage false t fst list
+tail list = triage nil t snd list
+fst3 a b = false
+isEmpty list = triage true t fst3 list
+
+_filter self f list = if (isEmpty list) nil (if (f (head list)) (cons (head list) (self f (tail list))) (self f (tail list)))
+filter f list = Y _filter f list
+
+# Numbers
+# numbers are lists of bools. Least significant bit is at the top of the tree.
+
+isEven n = or (isEmpty n) (not (head n))
+
+# n <= m 
+# 1nnn
+# 0mmm
+
+## if (n == 1 && m == 0) then mrest > nrest else nrest <= mrest
+_lte self n m = if (and (isEmpty n) (isEmpty m)) true (if (and (head n) (not (head m))) (not (self (tail m) (tail n))) (self (tail n) (tail m)))
+lte = Y _lte
+
+0b n = cons false n
+1b n = cons true n
+
+_add_do-quit carry n m = and3 (not carry) (isEmpty n) (isEmpty m)
+_add_continue self carry n m = cons (xor3 carry (head n) (head m)) (self (majority carry (head n) (head m)) (tail n) (tail m))
+_add self carry n m = if (_add_do-quit carry n m) nil (_add_continue self carry n m)
+add = Y _add false
+
+0 = nil
+1 = cons true nil
+2 = cons false (cons true nil)
+3 = cons true (cons true nil)
+4 = add 2 2
+8 = add 4 4
+16 = add 8 8
+
+4_000_000 = 0b (0b (0b (0b (0b (0b (0b (0b (1b (0b (0b (1b (0b (0b (0b (0b (1b (0b (1b (1b (1b (1b nil)))))))))))))))))))))
+
+_fib self a b = if (lte 4_000_000 b) nil (cons b (self b (add a b)))
+fib = Y _fib 1 1
+
+evenfibs = filter isEven fib
+
+_sum self list = if (isEmpty list) 0 (add (head list) (self (tail list)))
+sum = Y _sum
+
+result = sum evenfibs

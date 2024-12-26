@@ -71,6 +71,7 @@ loop vars = do
       outputStrLn ":l <filename> - load file variables"
       outputStrLn ":r <filename> - run file"
       outputStrLn ":s <expression> - size "
+      outputStrLn ":n <expression> - show as number"
       outputStrLn ":syn <syntax> - show syntax tree"
       outputStrLn ":lit <literals> - show literals"
       loop vars
@@ -90,6 +91,12 @@ loop vars = do
       let syntax = parseLine rest
       let tree = evalExpression vars syntax
       outputStrLn $ "Size: " ++ show (calculateSize tree)
+      loop vars
+    Just (':' : 'n' : ' ' : rest) -> do
+      let syntax = parseLine rest
+      let tree = evalExpression vars syntax
+      outputStrLn $ "Number: " ++ show (asNumber tree)
+      loop vars
     Just (':' : 's' : 'y' : 'n' : rest) -> do
       outputStrLn . show $ parseLine rest
       loop vars
