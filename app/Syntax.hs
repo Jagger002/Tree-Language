@@ -127,9 +127,10 @@ _True :: Syntax
 _True = T
 
 _False :: Syntax
-_False = app [T,T]
+_False = app [T, T]
 
 createNumber :: Integer -> Syntax
 createNumber 0 = T
-createNumber x = let (q, r) = x `quotRem` 2
-              in app [T, if r == 0 then _False else _True, createNumber q]
+createNumber x =
+  let (q, r) = x `quotRem` 2
+   in app [T, if r == 0 then _False else _True, createNumber q]
