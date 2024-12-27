@@ -32,8 +32,7 @@ cons e list = t e list
 
 head list = triage false t fst list
 tail list = triage nil t snd list
-fst3 a b = false
-isEmpty list = triage true t fst3 list
+isEmpty list = triage true t (\a \b false) list
 
 filter f list = if (isEmpty list) nil (if (f (head list)) (cons (head list) (filter f (tail list))) (filter f (tail list)))
 

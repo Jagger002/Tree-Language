@@ -67,7 +67,7 @@ replaceLambdas (Application a b) = app [replaceLambdas a, replaceLambdas b] -- C
 replaceLambdas (Lambda name tree) | not (isUsed name tree) = app [_K, replaceLambdas tree] -- Case 3
 replaceLambdas (Lambda name (Var _)) = _I -- Case 4
 replaceLambdas (Lambda name (Lambda other e)) = replaceLambdas (Lambda name (replaceLambdas (Lambda other e))) -- Case 5
-replaceLambdas (Lambda name (Application f (Var n))) | name == n && not (isUsed name f) = f -- Eta
+replaceLambdas (Lambda name (Application f (Var n))) | name == n && not (isUsed name f) = replaceLambdas f -- Eta
 replaceLambdas (Lambda name (Application f g))
   | isUsed name f && isUsed name g =
       app [_S, replaceLambdas (Lambda name f), replaceLambdas (Lambda name g)] -- Case 6
