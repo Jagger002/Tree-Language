@@ -20,8 +20,14 @@ trim = f . f
 parseLine :: String -> Syntax
 parseLine = parse . parseLiterals
 
+mergeLines :: [String] -> [String]
+mergeLines [] = []
+mergeLines (line : otherLine@(c : cs) : rest)
+  | isSpace c = mergeLines ((line ++ otherLine) : rest)
+mergeLines (line : rest) = line : mergeLines rest
+
 parseLines :: String -> ([Syntax], [Syntax])
-parseLines = partition isStatement . map parse . filter (/= []) . map parseLiterals . lines
+parseLines = partition isStatement . map parse . filter (/= []) . map parseLiterals . mergeLines . lines
 
 parseFile :: String -> IO ([Syntax], [Syntax])
 parseFile filename = do
