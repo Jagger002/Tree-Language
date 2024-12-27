@@ -1,6 +1,7 @@
 module Lexer where
+import Text.Read (readMaybe)
 
-data Literal = Name String | Equals | StartParen | EndParen | Backslash | Dollar
+data Literal = Name String | Equals | StartParen | EndParen | Backslash | Dollar | Number Integer
   deriving (Show, Eq)
 
 parseLiterals :: String -> [Literal]
@@ -13,5 +14,7 @@ parseLiterals ('$' : xs) = Dollar : parseLiterals xs
 parseLiterals (' ' : xs) = parseLiterals xs
 parseLiterals [] = []
 parseLiterals s =
-  let (name, rest) = span (\c -> c /= ' ' && c /= ')') s
-   in (Name name) : parseLiterals rest
+  let (token, rest) = span (\c -> c /= ' ' && c /= ')') s
+   in case readMaybe token :: Maybe Integer of
+        Just num -> Number num : parseLiterals rest
+        Nothing  -> Name token : parseLiterals rest

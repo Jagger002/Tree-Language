@@ -97,6 +97,7 @@ parseHelper (Just syntax) (Dollar : rest) =
    in parseHelper (Just $ Application syntax innerSyntax) remaining
 parseHelper ms (Name "t" : rest) = parseHelper (Just $ maybeF ms T) rest
 parseHelper ms (Name name : rest) = parseHelper (Just $ maybeF ms $ Var name) rest
+parseHelper ms (Number n : rest) = parseHelper (Just $ maybeF ms $ createNumber n) rest
 parseHelper ms (Backslash : Name name : rest)
   | name == "t" = error "Cannot use reserved name t in lambda"
   | otherwise =
@@ -121,3 +122,14 @@ parse (Name name : lits)
 parse lits = case parseHelper Nothing lits of
   (syntax, []) -> replaceLambdas syntax
   (_, lits) -> error $ "Unexpected closing parenthesis before: " ++ show lits
+
+_True :: Syntax
+_True = T
+
+_False :: Syntax
+_False = app [T,T]
+
+createNumber :: Integer -> Syntax
+createNumber 0 = T
+createNumber x = let (q, r) = x `quotRem` 2
+              in app [T, if r == 0 then _False else _True, createNumber q]

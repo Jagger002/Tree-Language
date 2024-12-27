@@ -60,8 +60,6 @@ lte n m = if (and (isEmpty n) (isEmpty m)) true $
     (not (lte (tail m) (tail n)))
     (lte (tail n) (tail m))
 
-0b n = cons false n
-1b n = cons true n
 
 _add carry n m = 
   let (and3 (not carry) (isEmpty n) (isEmpty m)) \done
@@ -71,19 +69,8 @@ _add carry n m =
     nil
     (cons bit (_add newCarry (tail n) (tail m)))
     
+
 add = _add false
-
-0 = nil
-1 = cons true nil
-2 = cons false (cons true nil)
-3 = cons true (cons true nil)
-4 = add 2 2
-8 = add 4 4
-16 = add 8 8
-
-4_000_000 = 0b $ 0b $ 0b $ 0b $ 0b $ 0b $ 0b $ 0b $
-            1b $ 0b $ 0b $ 1b $ 0b $ 0b $ 0b $ 0b $
-            1b $ 0b $ 1b $ 1b $ 1b $ 1b nil
 
 _fib a b = cons b (_fib b (add a b))
 fib = _fib 1 1
@@ -91,7 +78,26 @@ fib = _fib 1 1
 # Euler 2
 evenfibs = filter isEven fib
 firstEvenFibs = takeWhile (\n lte n 4_000_000) evenfibs
-
 sum list = if (isEmpty list) 0 (add (head list) (sum (tail list)))
 
 result = sum firstEvenFibs
+
+
+mul n m = if (not (isEmpty n)) 
+    (add (if (head n) m nil) (cons false (mul (tail n) m))) 
+    nil
+
+sub1 n = if (head n) 
+    (cons false (tail n)) 
+    (cons true (sub1 (tail n)))
+
+
+sub n m = if (isEmpty m) 
+    n 
+    $ let (sub (tail n) (tail m)) \subtree
+    if (xor2 (head m) (head n)) 
+        (cons true (
+            if (head n) 
+                subtree
+                (sub1 subtree)))
+        (cons false subtree)
