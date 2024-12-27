@@ -24,40 +24,55 @@ isUsed name (Application a b) = isUsed name a || isUsed name b
 isUsed name (Var n) = name == n
 isUsed name T = False
 
+-- Convenience function to not have to write Application everywhere
+app :: [Syntax] -> Syntax
+app (single : []) = single
+app (first : second : rest) = app (Application first second : rest)
+
 -- K = t t
 _K :: Syntax
-_K = Application T T
+_K = app [T, T]
 
--- I = t (t (t t)) t
+-- I = t (t K) t
 _I :: Syntax
-_I = Application (Application T (Application T _K)) T
+_I = app [T, app [T, _K], T]
 
 -- S = t (t (t t t)) t
 _S :: Syntax
-_S = Application (Application T (Application T (Application _K T))) T
+_S = app [T, app [T, app [T, T, T]], T]
 
 -- B = S (K S) K
 _B :: Syntax
-_B = Application (Application _S (Application _K _S)) _K
+_B = app [_S, app [_K, _S], _K]
 
 -- C = S (B B S) (K K)
 _C :: Syntax
-_C = Application (Application _S (Application (Application _B _B) _S)) (Application _K _K)
+_C = app [_S, app [_B, _B, _S], app [_K, _K]]
+
+-- U = S I I
+_U :: Syntax
+_U = app [_S, _I, _I]
+
+-- Y = B U (C B U)
+_Y :: Syntax
+_Y = app [_B, _U, app [_C, _B, _U]]
 
 -- Cases from Wikipedia: https://en.m.wikipedia.org/wiki/Combinatory_logic#Combinatory_calculi
 replaceLambdas :: Syntax -> Syntax
 replaceLambdas (Assignment name (var : vars) tree) = replaceLambdas $ Assignment name vars (Lambda var tree)
-replaceLambdas (Assignment name [] tree) = Assignment name [] $ replaceLambdas tree
-replaceLambdas (Application a b) = Application (replaceLambdas a) (replaceLambdas b) -- Case 2
-replaceLambdas (Lambda name tree) | not (isUsed name tree) = Application _K (replaceLambdas tree) -- Case 3
+replaceLambdas (Assignment name [] tree)
+  | isUsed name tree = Assignment name [] $ app [_Y, replaceLambdas (Lambda name tree)]
+  | otherwise = Assignment name [] $ replaceLambdas tree
+replaceLambdas (Application a b) = app [replaceLambdas a, replaceLambdas b] -- Case 2
+replaceLambdas (Lambda name tree) | not (isUsed name tree) = app [_K, replaceLambdas tree] -- Case 3
 replaceLambdas (Lambda name (Var _)) = _I -- Case 4
 replaceLambdas (Lambda name (Lambda other e)) = replaceLambdas (Lambda name (replaceLambdas (Lambda other e))) -- Case 5
 replaceLambdas (Lambda name (Application f (Var n))) | name == n && not (isUsed name f) = f -- Eta
 replaceLambdas (Lambda name (Application f g))
   | isUsed name f && isUsed name g =
-      Application (Application _S (replaceLambdas (Lambda name f))) (replaceLambdas (Lambda name g)) -- Case 6
-  | isUsed name f = Application (Application _C (replaceLambdas (Lambda name f))) (replaceLambdas g) -- Case 7
-  | isUsed name g = Application (Application _B (replaceLambdas f)) (replaceLambdas (Lambda name g)) -- Case 8
+      app [_S, replaceLambdas (Lambda name f), replaceLambdas (Lambda name g)] -- Case 6
+  | isUsed name f = app [_C, replaceLambdas (Lambda name f), replaceLambdas g] -- Case 7
+  | isUsed name g = app [_B, replaceLambdas f, replaceLambdas (Lambda name g)] -- Case 8
 replaceLambdas tree = tree -- Case 1
 
 -- Splits the string until the next matching closing parenthesis.

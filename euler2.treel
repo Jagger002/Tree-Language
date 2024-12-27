@@ -35,8 +35,7 @@ tail list = triage nil t snd list
 fst3 a b = false
 isEmpty list = triage true t fst3 list
 
-_filter self f list = if (isEmpty list) nil (if (f (head list)) (cons (head list) (self f (tail list))) (self f (tail list)))
-filter f list = Y _filter f list
+filter f list = if (isEmpty list) nil (if (f (head list)) (cons (head list) (filter f (tail list))) (filter f (tail list)))
 
 # Numbers
 # numbers are lists of bools. Least significant bit is at the top of the tree.
@@ -48,16 +47,15 @@ isEven n = or (isEmpty n) (not (head n))
 # 0mmm
 
 ## if (n == 1 && m == 0) then mrest > nrest else nrest <= mrest
-_lte self n m = if (and (isEmpty n) (isEmpty m)) true (if (and (head n) (not (head m))) (not (self (tail m) (tail n))) (self (tail n) (tail m)))
-lte = Y _lte
+lte n m = if (and (isEmpty n) (isEmpty m)) true (if (and (head n) (not (head m))) (not (lte (tail m) (tail n))) (lte (tail n) (tail m)))
 
 0b n = cons false n
 1b n = cons true n
 
 _add_do-quit carry n m = and3 (not carry) (isEmpty n) (isEmpty m)
-_add_continue self carry n m = cons (xor3 carry (head n) (head m)) (self (majority carry (head n) (head m)) (tail n) (tail m))
-_add self carry n m = if (_add_do-quit carry n m) nil (_add_continue self carry n m)
-add = Y _add false
+_add_continue a carry n m = cons (xor3 carry (head n) (head m)) (a (majority carry (head n) (head m)) (tail n) (tail m))
+_add carry n m = if (_add_do-quit carry n m) nil (_add_continue _add carry n m)
+add = _add false
 
 0 = nil
 1 = cons true nil
@@ -69,12 +67,11 @@ add = Y _add false
 
 4_000_000 = 0b (0b (0b (0b (0b (0b (0b (0b (1b (0b (0b (1b (0b (0b (0b (0b (1b (0b (1b (1b (1b (1b nil)))))))))))))))))))))
 
-_fib self a b = if (lte 4_000_000 b) nil (cons b (self b (add a b)))
-fib = Y _fib 1 1
+_fib a b = if (lte 4_000_000 b) nil (cons b (_fib b (add a b)))
+fib = _fib 1 1
 
 evenfibs = filter isEven fib
 
-_sum self list = if (isEmpty list) 0 (add (head list) (self (tail list)))
-sum = Y _sum
+sum list = if (isEmpty list) 0 (add (head list) (sum (tail list)))
 
 result = sum evenfibs
