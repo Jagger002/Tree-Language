@@ -1,4 +1,5 @@
 triage leaf stem branch = t (t leaf stem) branch
+let x f = f x
 
 # SKI combinators
 id x = x
@@ -34,7 +35,7 @@ head list = triage false t fst list
 tail list = triage nil t snd list
 isEmpty list = triage true t (\a \b false) list
 
-filter f list = if (isEmpty list) nil (if (f (head list)) (cons (head list) (filter f (tail list))) (filter f (tail list)))
+filter f list = if (isEmpty list) nil $ let (filter f (tail list)) \rest if (f (head list)) (cons (head list) rest) rest
 
 # Numbers
 # numbers are lists of bools. Least significant bit is at the top of the tree.

@@ -92,13 +92,16 @@ parseHelper _ (Equals : _) = error "Unexpected equals sign"
 parseHelper Nothing [] = error "Unexpected end of input"
 parseHelper _ (EndParen : _) = error "Unexpected closing parenthesis"
 parseHelper (Just syntax) [] = (syntax, [])
+parseHelper (Just syntax) (Dollar : rest) =
+  let (innerSyntax, remaining) = parseHelper Nothing rest
+   in parseHelper (Just $ Application syntax innerSyntax) remaining
 parseHelper ms (Name "t" : rest) = parseHelper (Just $ maybeF ms T) rest
 parseHelper ms (Name name : rest) = parseHelper (Just $ maybeF ms $ Var name) rest
 parseHelper ms (Backslash : Name name : rest)
   | name == "t" = error "Cannot use reserved name t in lambda"
   | otherwise =
       let (innerSyntax, remaining) = parseHelper Nothing rest
-       in parseHelper (Just $ Lambda name innerSyntax) remaining
+       in parseHelper (Just $ maybeF ms $ Lambda name innerSyntax) remaining
 parseHelper ms (StartParen : rest) =
   let (insidePars, rightOfPars) = insideParens rest
       (innerSyntax, []) = parseHelper Nothing insidePars
