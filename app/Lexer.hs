@@ -1,6 +1,6 @@
 module Lexer where
 
-data Literal = Name String | Equals | StartParen | EndParen | Backslash
+data Literal = Name String | Equals | StartParen | EndParen | Backslash | Dollar
   deriving (Show, Eq)
 
 parseLiterals :: String -> [Literal]
@@ -9,6 +9,7 @@ parseLiterals ('(' : xs) = StartParen : parseLiterals xs
 parseLiterals (')' : xs) = EndParen : parseLiterals xs
 parseLiterals ('=' : xs) = Equals : parseLiterals xs
 parseLiterals ('\\' : xs) = Backslash : parseLiterals xs
+parseLiterals ('$' : xs) = Dollar : parseLiterals xs
 parseLiterals (' ' : xs) = parseLiterals xs
 parseLiterals [] = []
 parseLiterals s =
