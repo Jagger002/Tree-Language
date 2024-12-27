@@ -31,24 +31,30 @@ majority a b c = if a (or b c) (and b c)
 nil = t
 cons e list = t e list
 
+listmatch list isNil isCons = triage isNil t isCons list
+
 head list = triage false t fst list
 tail list = triage nil t snd list
-isEmpty list = triage true t (\a \b false) list
+isEmpty list = listmatch list true (\_ \_ false)
 
-filter f list = if (isEmpty list) nil $
-  let (filter f (tail list)) \rest
-  if (f (head list))
-    (cons (head list) rest)
+# Selects the last element of the list
+lastOrDefault list default = listmatch list default \hd \tl lastOrDefault tl hd
+
+filter f list = listmatch list nil \hd \tl 
+  let (filter f tl) \rest
+  if (f hd)
+    (cons hd rest)
     rest
 
-takeWhile f list = if (isEmpty list) nil $
-  if (f (head list))
-    (cons (head list) (takeWhile f (tail list)))
+takeWhile f list = listmatch list nil \hd \tl 
+  if (f hd)
+    (cons hd (takeWhile f tl))
     nil
 
 # Numbers
 # numbers are lists of bools. Least significant bit is at the top of the tree.
 
+isZero n = isEmpty $ filter id n
 isEven n = or (isEmpty n) (not (head n))
 
 # n <= m 
@@ -82,15 +88,12 @@ sum list = if (isEmpty list) 0 (add (head list) (sum (tail list)))
 
 result = sum firstEvenFibs
 
-
-mul n m = if (not (isEmpty n)) 
-    (add (if (head n) m nil) (cons false (mul (tail n) m))) 
-    nil
+mul n m = listmatch n 0 \hd \tl
+  add (if hd m nil) (cons false $ mul tl m)
 
 sub1 n = if (head n) 
     (cons false (tail n)) 
     (cons true (sub1 (tail n)))
-
 
 sub n m = if (isEmpty m) 
     n 
@@ -101,3 +104,49 @@ sub n m = if (isEmpty m)
                 subtree
                 (sub1 subtree)))
         (cons false subtree)
+
+
+# 100100101
+#  101      -
+# ---------
+# lF = 64
+#  10000101
+#       101
+
+# Pairs
+pair a b = t a b
+left p = triage t t fst p
+right p = triage t t snd p
+
+_powersOfTwo n = cons n $ _powersOfTwo (mul 2 n)
+powersOfTwo = _powersOfTwo 1
+
+# returns the pair (q, r)
+divmod n d = if (not (lte d n))
+  (pair 0 n) $
+  let (takeWhile (\x lte (mul x d) n) powersOfTwo) \pows
+  let (lastOrDefault pows 1) \largestFactor
+  let (sub n (mul largestFactor d)) \rest
+  let (divmod rest d) \innerPair
+  pair (add largestFactor (left innerPair)) (right innerPair)
+
+div n d = left $ divmod n d
+mod n d = right $ divmod n d
+
+isDivisible n d = isZero $ mod n d
+
+# Project euler 3
+
+_nats n = cons n $ _nats (add 1 n)
+nats = _nats 0
+
+
+_divisors n d =
+  if (isZero n) (cons 0 nil) $
+  if (isZero $ sub1 n) nil $
+  let (divmod n d) \p
+  if (isZero $ right p)
+    (cons d $ _divisors (left p) d)
+    (_divisors n (add 1 d))
+divisors n = _divisors n 2
+
