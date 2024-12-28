@@ -66,6 +66,8 @@ lte n m = if (and (isEmpty n) (isEmpty m)) true $
     (not (lte (tail m) (tail n)))
     (lte (tail n) (tail m))
 
+lt n m = not $ lte m n 
+equal n m = and (lte n m) (lte m n)
 
 _add carry n m = 
   let (and3 (not carry) (isEmpty n) (isEmpty m)) \done
@@ -150,3 +152,108 @@ _divisors n d =
     (_divisors n (add 1 d))
 divisors n = _divisors n 2
 
+# Uppgift 4
+# Convert binary number n to base b (each individual digit in base 2 still)
+toBase n b = if (lt n b)
+  (cons n nil)
+  (cons (mod n b) (toBase (div n b) b))
+
+index n list = if (isZero n)
+  (head list)
+  (index (sub1 n) (tail list))
+
+isPalindrome6 n =
+  let (toBase n 10) \pal
+  and3 (equal (index 0 pal) (index 5 pal))
+       (equal (index 1 pal) (index 4 pal))
+       (equal (index 2 pal) (index 3 pal))
+
+max2 a b = if (lte a b) b a
+maxOrDefault n list = listmatch list n \hd \tl maxOrDefault (max2 n hd) tl
+max list = maxOrDefault 0 list
+
+_reverse list result = listmatch list result \hd \tl
+  _reverse tl (cons hd result)
+reverse list = _reverse list nil
+
+#900s = reverse $ takeWhile (\x lt x 1000) (_nats 900)
+
+#map f list = listmatch list nil \hd \tl (cons (f hd) (map f tl))
+#flatMap f list =
+
+# Euler4
+# run forpal i 0 
+isPalindrome6 n =
+  let (toBase n 10) \pal
+  and3 (equal (index 0 pal) (index 5 pal))
+       (equal (index 1 pal) (index 4 pal))
+       (equal (index 2 pal) (index 3 pal))
+
+
+forpal2 i j x =
+  if (or (lte (mul i j) x) (lte j 111))
+    x $
+    if (isPalindrome6 (mul i j))
+      (mul i j) 
+      (forpal2 i (sub1 j) x)
+
+forpal i x =
+  if (lte i 111)
+    x $
+    forpal (sub1 i) (forpal2 i i x)
+
+# 
+#isPalindrome4 n =
+  let (toBase n 10) \pal
+  and (equal (index 0 pal) (index 3 pal))
+       (equal (index 1 pal) (index 2 pal))
+#forpal42 i j x =
+  if (or (lte (mul i j) x) (lte j 11))
+    x $
+    if (isPalindrome4 (mul i j))
+      (mul i j) 
+      (forpal2 i (sub1 j) x)
+#forpal4 i x =
+  if (lte i 11)
+    x $
+    forpal42 (sub1 i) (forpal2 i i x)
+
+square6 n =  mul n n
+sum6 n = n
+
+for6 i f x =
+  let (add (f i) x) \newans
+  if (isZero i)
+    newans $
+    for6 (sub1 i) f newans
+
+#for6 10 square 0
+#ans6 = (sub (mul (for6 100 sum 0) (for6 100 sum 0)) for6 100 square 0)
+
+min a b =
+  if (lt a b)
+    a
+    b
+
+max a b =
+  if (lt a b)
+    b
+    a
+
+forgcd i n m = 
+  if (isZero i) 
+    1 $
+    if (and (isDivisible n i) (isDivisible m i))
+      i $
+      forgcd (sub1 i) n m
+
+gcd a b = forgcd (min a b) a b
+
+lcm a b = div (mul a b) (gcd a b)
+
+forlcm i x =
+  if (isZero i) 
+    x $
+    forlcm (sub1 i) (lcm x i)
+
+problem5 = forlcm 20 1
